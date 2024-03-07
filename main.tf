@@ -38,7 +38,7 @@ resource "google_compute_network" "private_vpc" {
   ]
 }
 
-# Subnet for k8s
+# Subnet for bastion host
 resource "google_compute_subnetwork" "bastion_subnet" {
   name          = "k8s-subnet"
   project       = var.project_id
