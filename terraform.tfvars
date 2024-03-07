@@ -1,0 +1,5 @@
+region = "value"
+zone = "value"
+project_id = "value"
+gke_name = "value"
+bastion_name = "value"
