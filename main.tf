@@ -24,6 +24,17 @@ resource "google_project_service" "cloudresourcemanager" {
   service = "cloudresourcemanager.googleapis.com"
 }
 
+# Service Account For Bastion Host
+resource "google_service_account" "bastion_svc_account" {
+    account_id      = "bastion-svc-account"
+    display_name   = "bastion-svc-account"
+}
+# Service Account For GKE
+resource "google_service_account" "k8s_svc_account" {
+  account_id   = "k8s-svc-account"
+  display_name = "k8s-svc-account"
+}
+
 # VPC
 resource "google_compute_network" "private_vpc" {
   name                      = "private-vpc"
@@ -77,11 +88,6 @@ resource "google_compute_router_nat" "nat" {
 }
 
 
-# Service Account For GKE
-resource "google_service_account" "k8s_svc_account" {
-  account_id   = "k8s-svc-account"
-  display_name = "k8s-svc-account"
-}
 
 # GKE Control Plane
 resource "google_container_cluster" "private_gke" {
@@ -137,12 +143,7 @@ resource "google_container_node_pool" "nodes_pool" {
   }
 }
 
-# Service Account For Bastion Host
-resource "google_service_account" "bastion_svc_account" {
-    account_id      = "bastion-svc-account"
-    display_name   = "bastion-svc-account"
-}
-
+# FireWall
 resource "google_compute_firewall" "bastion_firewall" {
   name    = "bastion-firewall"
   network = google_compute_network.private_vpc.name
@@ -154,6 +155,7 @@ resource "google_compute_firewall" "bastion_firewall" {
   }
 }
 
+# Bastion Host
 resource "google_compute_instance" "bastion_host" {
     name = var.bastion_name
     machine_type = "e2-medium"
