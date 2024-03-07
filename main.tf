@@ -1,16 +1,16 @@
 terraform {
   required_providers {
     google = {
-      source    = "hashicorp/google"
-      version   = "4.47.0"
+      source  = "hashicorp/google"
+      version = "4.47.0"
     }
   }
 }
 
 provider "google" {
-  project   = var.project_id
-  region    = var.region
-  zone      = var.zone
+  project = var.project_id
+  region  = var.region
+  zone    = var.zone
 }
 
 # API
@@ -26,8 +26,8 @@ resource "google_project_service" "cloudresourcemanager" {
 
 # Service Account For Bastion Host
 resource "google_service_account" "bastion_svc_account" {
-    account_id      = "bastion-svc-account"
-    display_name   = "bastion-svc-account"
+  account_id   = "bastion-svc-account"
+  display_name = "bastion-svc-account"
 }
 # Service Account For GKE
 resource "google_service_account" "k8s_svc_account" {
@@ -37,12 +37,12 @@ resource "google_service_account" "k8s_svc_account" {
 
 # VPC
 resource "google_compute_network" "private_vpc" {
-  name                      = "private-vpc"
-  auto_create_subnetworks   = false
-  project                   = var.project_id
-  routing_mode              = "REGIONAL"
+  name                    = "private-vpc"
+  auto_create_subnetworks = false
+  project                 = var.project_id
+  routing_mode            = "REGIONAL"
 
-  depends_on = [ 
+  depends_on = [
     google_project_service.compute,
     google_project_service.container,
     google_project_service.cloudresourcemanager
@@ -84,7 +84,7 @@ resource "google_compute_router_nat" "nat" {
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 
-  depends_on = [ google_compute_subnetwork.k8s_subnet, google_compute_subnetwork.bastion_subnet ]
+  depends_on = [google_compute_subnetwork.k8s_subnet, google_compute_subnetwork.bastion_subnet]
 }
 
 
@@ -94,9 +94,9 @@ resource "google_container_cluster" "private_gke" {
   name     = var.gke_name
   location = var.region
 
-  networking_mode   = "VPC_NATIVE"
-  network           = google_compute_network.private_vpc.self_link
-  subnetwork        = google_compute_subnetwork.k8s_subnet.self_link
+  networking_mode = "VPC_NATIVE"
+  network         = google_compute_network.private_vpc.self_link
+  subnetwork      = google_compute_subnetwork.k8s_subnet.self_link
 
   remove_default_node_pool = true
   initial_node_count       = 1
@@ -106,30 +106,30 @@ resource "google_container_cluster" "private_gke" {
   }
 
   private_cluster_config {
-      enable_private_nodes      = true
-      enable_private_endpoint   = false
-      master_ipv4_cidr_block    = "172.16.0.0/28"
+    enable_private_nodes    = true
+    enable_private_endpoint = false
+    master_ipv4_cidr_block  = "172.16.0.0/28"
   }
 }
 
 data "google_container_cluster" "private_gke_data" {
-  name = var.gke_name
-  project = var.project_id
+  name     = var.gke_name
+  project  = var.project_id
   location = var.region
 
-  depends_on = [ google_container_cluster.private_gke ]
+  depends_on = [google_container_cluster.private_gke]
 }
 
 # GKE pool nodes
 resource "google_container_node_pool" "nodes_pool" {
-  name          = "gke-node-pool"
-  location      = var.region
-  project       = var.project_id
-  cluster       = google_container_cluster.private_gke.name
-  node_count    = 1
+  name       = "gke-node-pool"
+  location   = var.region
+  project    = var.project_id
+  cluster    = google_container_cluster.private_gke.name
+  node_count = 1
 
   management {
-    auto_repair = true
+    auto_repair  = true
     auto_upgrade = true
   }
 
@@ -137,7 +137,7 @@ resource "google_container_node_pool" "nodes_pool" {
     machine_type = "n1-standard-2"
 
     service_account = google_service_account.k8s_svc_account.email
-    oauth_scopes    = [
+    oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
   }
@@ -145,37 +145,37 @@ resource "google_container_node_pool" "nodes_pool" {
 
 # FireWall
 resource "google_compute_firewall" "bastion_firewall" {
-  name    = "bastion-firewall"
-  network = google_compute_network.private_vpc.name
+  name          = "bastion-firewall"
+  network       = google_compute_network.private_vpc.name
   source_ranges = ["0.0.0.0/0"]
 
   allow {
-      protocol = "tcp"
-      ports = ["22"]
+    protocol = "tcp"
+    ports    = ["22"]
   }
 }
 
 # Bastion Host
 resource "google_compute_instance" "bastion_host" {
-    name = var.bastion_name
-    machine_type = "e2-medium"
+  name         = var.bastion_name
+  machine_type = "e2-medium"
 
-    boot_disk {
-        initialize_params {
-            image = "debian-cloud/debian-11"
-        }
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-11"
     }
-    scratch_disk {
-        interface = "NVME"
-    }
+  }
+  scratch_disk {
+    interface = "NVME"
+  }
 
-    network_interface {
-        network     = google_compute_network.private_vpc.self_link
-        subnetwork  = google_compute_subnetwork.bastion_subnet.self_link 
-        access_config {} # Enable Public IP Address
-    }
+  network_interface {
+    network    = google_compute_network.private_vpc.self_link
+    subnetwork = google_compute_subnetwork.bastion_subnet.self_link
+    access_config {} # Enable Public IP Address
+  }
 
-    metadata_startup_script = <<EOF
+  metadata_startup_script = <<EOF
     #!/bin/bash
     apt update -y
     apt install curl -y
@@ -187,10 +187,10 @@ resource "google_compute_instance" "bastion_host" {
     chown $USER: /home/$USER/.kube/config
     EOF
 
-    service_account {
-        email  = google_service_account.bastion_svc_account.email
-        scopes = ["cloud-platform"]
-    }
+  service_account {
+    email  = google_service_account.bastion_svc_account.email
+    scopes = ["cloud-platform"]
+  }
 
-    depends_on = [ google_compute_firewall.bastion_firewall, google_container_node_pool.nodes_pool ]
+  depends_on = [google_compute_firewall.bastion_firewall, google_container_node_pool.nodes_pool]
 }
