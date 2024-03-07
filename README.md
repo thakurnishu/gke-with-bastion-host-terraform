@@ -5,11 +5,11 @@
 - `gcloud auth application-default login`
 
 #### Change Variable in terraform.tfvars file
-- project-ID
-- region
-- zone
-- gke cluster name
-- bastion host name
+- Project-ID
+- Region
+- Zone
+- GKE Cluster Name
+- Bastion Host Name
 
 #### Run terraform
 - `terraform init`
